@@ -133,6 +133,101 @@ bgCache.height = canvas.height;
 let bgCtx = bgCache.getContext('2d');
 drawForestStatic(bgCtx);
 
+// Draw the cached background to the visible canvas immediately
+ctx.drawImage(bgCache, 0, 0);
+
+// Persist journal input and overlay it on the canvas
+const entryEl = document.getElementById("journalEntry");
+let entryText = localStorage.getItem("journalEntry") || "";
+if (entryEl) {
+  entryEl.value = entryText;
+  entryEl.addEventListener("input", () => {
+    entryText = entryEl.value;
+    try {
+      localStorage.setItem("journalEntry", entryText);
+    } catch (_) {
+      // Ignore storage errors (e.g., privacy mode)
+    }
+  });
+}
+
+function getTasks() {
+  return entryText
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function drawOverlay() {
+  const padding = 14;
+  const boxWidth = canvas.width - padding * 2;
+  const tasks = getTasks();
+  const boxHeight = tasks.length ? 24 + tasks.length * 22 : 40;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(24,24,24,0.6)';
+  ctx.fillRect(padding, padding, boxWidth, boxHeight);
+  ctx.font = '16px Arial, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#ffe700';
+
+  if (tasks.length) {
+    for (let i = 0; i < tasks.length; i++) {
+      ctx.fillText(`${i + 1}. ${tasks[i]}`, padding + 10, padding + 8 + i * 22);
+    }
+  } else {
+    ctx.fillStyle = '#d2c200';
+    ctx.fillText('Type your top 3 tasks...', padding + 10, padding + 10);
+  }
+  ctx.restore();
+}
+
+// Path definition used for walking animation (matches the drawn path)
+const P0 = { x: 80, y: 600 };
+const P1 = { x: 100, y: 400 };
+const P2 = { x: 320, y: 400 };
+const P3 = { x: 190, y: 0 };
+
+function cubic(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
+
+function pointOnPath(t) {
+  return {
+    x: cubic(P0.x, P1.x, P2.x, P3.x, t),
+    y: cubic(P0.y, P1.y, P2.y, P3.y, t)
+  };
+}
+
+// Animation loop
+let lastTs = 0;
+let walkerT = 0;
+const walkerSpeedPerMs = 0.00012; // fraction of the path per millisecond
+
+function render(ts) {
+  if (!lastTs) lastTs = ts;
+  const delta = ts - lastTs;
+  lastTs = ts;
+
+  // Advance animation state
+  legPhase += delta * 0.008;
+  walkerT += delta * walkerSpeedPerMs;
+  if (walkerT > 1) walkerT = 0;
+
+  // Draw frame
+  ctx.drawImage(bgCache, 0, 0);
+  const pos = pointOnPath(walkerT);
+  // Raise the figure slightly so feet sit closer to the path
+  drawStickFigure(pos.x, pos.y - 10, legPhase);
+  drawOverlay();
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
   </script>
 </body>
 </html>
