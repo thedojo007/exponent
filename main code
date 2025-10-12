@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Walking Stick Figure Journal</title>
+  <style>
+    body {
+      background: #181818;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #ffe700;
+      padding-top: 36px;
+    }
+    h1 {
+      text-align: center;
+      color: #ffe700;
+      margin-bottom: 16px;
+    }
+    #prompt {
+      text-align: center;
+      font-size: 1.3em;
+      margin-bottom: 12px;
+    }
+    #journalEntry {
+      display: block;
+      margin: 0 auto 30px auto;
+      width: 340px;
+      height: 1.7em;
+      font-size: 1.1em;
+      padding: 4px 10px;
+      border: 2px solid #ffe700;
+      border-radius: 6px;
+      background: #252525;
+      color: #ffe700;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #journalEntry:focus {
+      border: 2.5px solid #ffa733;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #f5f2ea;
+      box-shadow: 0 0 32px #181818;
+    }
+  </style>
+</head>
+<body>
+  <h1>My Personal Journal</h1>
+  <div id="prompt">What three things do you need to do today?</div>
+  <input type="text" id="journalEntry" placeholder="Add your entry here..." />
+
+  <canvas id="forestCanvas" width="400" height="600"></canvas>
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById("forestCanvas");
+    const ctx = canvas.getContext("2d");
+
+   function drawForestStatic(ctx) {
+  // Draw path (light brown curve)
+  ctx.save();
+  ctx.strokeStyle = "#b0a890";
+  ctx.lineWidth = 20;
+  ctx.beginPath();
+  ctx.moveTo(80, 600);
+  ctx.bezierCurveTo(100, 400, 320, 400, 190, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw trees (thin black trunks and green foliage)
+  const treeSpecs = [
+    {x: 50, h: 320},
+    {x: 95, h: 270},
+    {x: 330, h: 340},
+    {x: 370, h: 280},
+    {x: 250, h: 220},
+    {x: 150, h: 320}
+  ];
+  ctx.strokeStyle = "#212121";
+  ctx.lineWidth = 8;
+  treeSpecs.forEach(spec => {
+    ctx.beginPath();
+    ctx.moveTo(spec.x, 600);
+    ctx.lineTo(spec.x, 600-spec.h);
+    ctx.stroke();
+
+    // Draw leaves
+    ctx.beginPath();
+    ctx.arc(spec.x, 600-spec.h, 18, 0, 2 * Math.PI);
+    ctx.fillStyle = "#b6c9ad";
+    ctx.fill();
+  });
+}
+
+    // Stick figure animation variables
+    let legPhase = 0;
+
+    function drawStickFigure(x, y, phase) {
+      ctx.save();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#181818";
+      // Head
+      ctx.beginPath();
+      ctx.arc(x, y - 36, 12, 0, 2 * Math.PI);
+      ctx.fillStyle = "#181818";
+      ctx.fill();
+      // Body
+      ctx.beginPath();
+      ctx.moveTo(x, y - 24);
+      ctx.lineTo(x, y + 22);
+      ctx.stroke();
+      // Arms
+      ctx.beginPath();
+      ctx.moveTo(x - 22, y);
+      ctx.lineTo(x + 22, y);
+      ctx.stroke();
+      // Legs (walking)
+      const leg1x = x - 12 * Math.sin(phase), leg2x = x + 12 * Math.sin(phase);
+      ctx.beginPath();
+      ctx.moveTo(x, y + 22);
+      ctx.lineTo(leg1x, y + 55);
+      ctx.moveTo(x, y + 22);
+      ctx.lineTo(leg2x, y + 55);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+// Cache the static background
+let bgCache = document.createElement('canvas');
+bgCache.width = canvas.width;
+bgCache.height = canvas.height;
+let bgCtx = bgCache.getContext('2d');
+drawForestStatic(bgCtx);
+
+  </script>
+</body>
+</html>
