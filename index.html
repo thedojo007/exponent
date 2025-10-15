@@ -131,6 +131,9 @@ let bgCache = document.createElement('canvas');
 bgCache.width = canvas.width;
 bgCache.height = canvas.height;
 let bgCtx = bgCache.getContext('2d');
+// Fill the cached background so it fully overwrites previous frames
+bgCtx.fillStyle = '#f5f2ea';
+bgCtx.fillRect(0, 0, bgCache.width, bgCache.height);
 drawForestStatic(bgCtx);
 
 // Draw the cached background to the visible canvas immediately
