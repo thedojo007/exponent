@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Walking Stick Figure Journal</title>
+  <style>
+    body {
+      background: #181818;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #ffe700;
+      padding-top: 36px;
+    }
+    h1 {
+      text-align: center;
+      color: #ffe700;
+      margin-bottom: 16px;
+    }
+    #prompt {
+      text-align: center;
+      font-size: 1.3em;
+      margin-bottom: 12px;
+    }
+    #journalEntry {
+      display: block;
+      margin: 0 auto 30px auto;
+      width: 340px;
+      height: 1.7em;
+      font-size: 1.1em;
+      padding: 4px 10px;
+      border: 2px solid #ffe700;
+      border-radius: 6px;
+      background: #252525;
+      color: #ffe700;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #journalEntry:focus {
+      border: 2.5px solid #ffa733;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #f5f2ea;
+      box-shadow: 0 0 32px #181818;
+    }
+  </style>
+</head>
+<body>
+  <h1>My Personal Journal</h1>
+  <div id="prompt">What three things do you need to do today?</div>
+  <input type="text" id="journalEntry" placeholder="Add your entry here..." />
+
+  <canvas id="forestCanvas" width="400" height="600"></canvas>
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById("forestCanvas");
+    const ctx = canvas.getContext("2d");
+
+   function drawForestStatic(ctx) {
+  // Draw path (light brown curve)
+  ctx.save();
+  ctx.strokeStyle = "#b0a890";
+  ctx.lineWidth = 20;
+  ctx.beginPath();
+  ctx.moveTo(80, 600);
+  ctx.bezierCurveTo(100, 400, 320, 400, 190, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw trees (thin black trunks and green foliage)
+  const treeSpecs = [
+    {x: 50, h: 320},
+    {x: 95, h: 270},
+    {x: 330, h: 340},
+    {x: 370, h: 280},
+    {x: 250, h: 220},
+    {x: 150, h: 320}
+  ];
+  ctx.strokeStyle = "#212121";
+  ctx.lineWidth = 8;
+  treeSpecs.forEach(spec => {
+    ctx.beginPath();
+    ctx.moveTo(spec.x, 600);
+    ctx.lineTo(spec.x, 600-spec.h);
+    ctx.stroke();
+
+    // Draw leaves
+    ctx.beginPath();
+    ctx.arc(spec.x, 600-spec.h, 18, 0, 2 * Math.PI);
+    ctx.fillStyle = "#b6c9ad";
+    ctx.fill();
+  });
+}
+
+    // Stick figure animation variables
+    let legPhase = 0;
+
+    function drawStickFigure(x, y, phase) {
+      ctx.save();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#181818";
+      // Head
+      ctx.beginPath();
+      ctx.arc(x, y - 36, 12, 0, 2 * Math.PI);
+      ctx.fillStyle = "#181818";
+      ctx.fill();
+      // Body
+      ctx.beginPath();
+      ctx.moveTo(x, y - 24);
+      ctx.lineTo(x, y + 22);
+      ctx.stroke();
+      // Arms
+      ctx.beginPath();
+      ctx.moveTo(x - 22, y);
+      ctx.lineTo(x + 22, y);
+      ctx.stroke();
+      // Legs (walking)
+      const leg1x = x - 12 * Math.sin(phase), leg2x = x + 12 * Math.sin(phase);
+      ctx.beginPath();
+      ctx.moveTo(x, y + 22);
+      ctx.lineTo(leg1x, y + 55);
+      ctx.moveTo(x, y + 22);
+      ctx.lineTo(leg2x, y + 55);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+// Cache the static background
+let bgCache = document.createElement('canvas');
+bgCache.width = canvas.width;
+bgCache.height = canvas.height;
+let bgCtx = bgCache.getContext('2d');
+drawForestStatic(bgCtx);
+
+// Draw the cached background to the visible canvas immediately
+ctx.drawImage(bgCache, 0, 0);
+
+// Persist journal input and overlay it on the canvas
+const entryEl = document.getElementById("journalEntry");
+let entryText = localStorage.getItem("journalEntry") || "";
+if (entryEl) {
+  entryEl.value = entryText;
+  entryEl.addEventListener("input", () => {
+    entryText = entryEl.value;
+    try {
+      localStorage.setItem("journalEntry", entryText);
+    } catch (_) {
+      // Ignore storage errors (e.g., privacy mode)
+    }
+  });
+}
+
+function getTasks() {
+  return entryText
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function drawOverlay() {
+  const padding = 14;
+  const boxWidth = canvas.width - padding * 2;
+  const tasks = getTasks();
+  const boxHeight = tasks.length ? 24 + tasks.length * 22 : 40;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(24,24,24,0.6)';
+  ctx.fillRect(padding, padding, boxWidth, boxHeight);
+  ctx.font = '16px Arial, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#ffe700';
+
+  if (tasks.length) {
+    for (let i = 0; i < tasks.length; i++) {
+      ctx.fillText(`${i + 1}. ${tasks[i]}`, padding + 10, padding + 8 + i * 22);
+    }
+  } else {
+    ctx.fillStyle = '#d2c200';
+    ctx.fillText('Type your top 3 tasks...', padding + 10, padding + 10);
+  }
+  ctx.restore();
+}
+
+// Path definition used for walking animation (matches the drawn path)
+const P0 = { x: 80, y: 600 };
+const P1 = { x: 100, y: 400 };
+const P2 = { x: 320, y: 400 };
+const P3 = { x: 190, y: 0 };
+
+function cubic(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
+
+function pointOnPath(t) {
+  return {
+    x: cubic(P0.x, P1.x, P2.x, P3.x, t),
+    y: cubic(P0.y, P1.y, P2.y, P3.y, t)
+  };
+}
+
+// Animation loop
+let lastTs = 0;
+let walkerT = 0;
+const walkerSpeedPerMs = 0.00012; // fraction of the path per millisecond
+
+function render(ts) {
+  if (!lastTs) lastTs = ts;
+  const delta = ts - lastTs;
+  lastTs = ts;
+
+  // Advance animation state
+  legPhase += delta * 0.008;
+  walkerT += delta * walkerSpeedPerMs;
+  if (walkerT > 1) walkerT = 0;
+
+  // Draw frame
+  ctx.drawImage(bgCache, 0, 0);
+  const pos = pointOnPath(walkerT);
+  // Raise the figure slightly so feet sit closer to the path
+  drawStickFigure(pos.x, pos.y - 10, legPhase);
+  drawOverlay();
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
+  </script>
+</body>
+</html>
