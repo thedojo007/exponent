@@ -58,39 +58,100 @@
     const ctx = canvas.getContext("2d");
 
    function drawForestStatic(ctx) {
-  // Draw path (light brown curve)
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+
+  // Soft grayscale background (mist)
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#f8f8f8');
+  bg.addColorStop(0.55, '#f2f1ee');
+  bg.addColorStop(1, '#eceae6');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Very distant trees (lighter, thinner)
+  const farXs = [25, 90, 155, 230, 300, 365];
+  ctx.strokeStyle = '#d3d3d3';
+  ctx.lineWidth = 3.5;
+  farXs.forEach((x, i) => {
+    const trunkHeight = 420 - i * 30;
+    ctx.beginPath();
+    ctx.moveTo(x, h);
+    ctx.lineTo(x, h - trunkHeight);
+    ctx.stroke();
+    // sparse leaf clusters near top
+    ctx.fillStyle = '#e3e3e3';
+    for (let j = -1; j <= 1; j++) {
+      ctx.beginPath();
+      ctx.ellipse(x + j * 10, h - trunkHeight - 6, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // Winding path (wide stroke to mimic filled path)
   ctx.save();
-  ctx.strokeStyle = "#b0a890";
-  ctx.lineWidth = 20;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#d8d4cb';
+  ctx.lineWidth = 36;
   ctx.beginPath();
-  ctx.moveTo(80, 600);
+  ctx.moveTo(80, h);
   ctx.bezierCurveTo(100, 400, 320, 400, 190, 0);
+  ctx.stroke();
+
+  // Subtle edge shading on the path
+  ctx.strokeStyle = '#c9c3b9';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(80, h);
+  ctx.bezierCurveTo(105, 405, 325, 395, 195, -5);
   ctx.stroke();
   ctx.restore();
 
-  // Draw trees (thin black trunks and green foliage)
+  // Foreground trees (darker, thicker)
   const treeSpecs = [
-    {x: 50, h: 320},
-    {x: 95, h: 270},
-    {x: 330, h: 340},
-    {x: 370, h: 280},
-    {x: 250, h: 220},
-    {x: 150, h: 320}
+    { x: 50,  h: 320 },
+    { x: 95,  h: 270 },
+    { x: 330, h: 340 },
+    { x: 370, h: 280 },
+    { x: 250, h: 220 },
+    { x: 150, h: 320 }
   ];
-  ctx.strokeStyle = "#212121";
-  ctx.lineWidth = 8;
+  ctx.strokeStyle = '#242424';
+  ctx.lineWidth = 7.5;
   treeSpecs.forEach(spec => {
     ctx.beginPath();
-    ctx.moveTo(spec.x, 600);
-    ctx.lineTo(spec.x, 600-spec.h);
+    ctx.moveTo(spec.x, h);
+    ctx.lineTo(spec.x, h - spec.h);
     ctx.stroke();
 
-    // Draw leaves
+    // simple canopy clusters
+    ctx.fillStyle = '#d2d6d2';
+    for (let j = -1; j <= 1; j++) {
+      ctx.beginPath();
+      ctx.ellipse(spec.x + j * 10, h - spec.h - 6, 11, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // Small rocks along the path
+  const rocks = [
+    { x: 88, y: h - 40, r: 4 },
+    { x: 112, y: h - 90, r: 3 },
+    { x: 270, y: 360, r: 4 },
+    { x: 230, y: 300, r: 3 }
+  ];
+  ctx.fillStyle = '#bdb8ae';
+  rocks.forEach(r => {
     ctx.beginPath();
-    ctx.arc(spec.x, 600-spec.h, 18, 0, 2 * Math.PI);
-    ctx.fillStyle = "#b6c9ad";
+    ctx.ellipse(r.x, r.y, r.r + 1, r.r, 0.2, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // Caption on-canvas to match the reference
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.font = '22px Arial, sans-serif';
+  ctx.fillText('what three things', 16, 22);
+  ctx.fillText('do you need to do today?', 16, 48);
 }
 
     // Stick figure animation variables
@@ -131,9 +192,7 @@ let bgCache = document.createElement('canvas');
 bgCache.width = canvas.width;
 bgCache.height = canvas.height;
 let bgCtx = bgCache.getContext('2d');
-// Fill the cached background so it fully overwrites previous frames
-bgCtx.fillStyle = '#f5f2ea';
-bgCtx.fillRect(0, 0, bgCache.width, bgCache.height);
+// Draw the static scene into the cache (includes background fill)
 drawForestStatic(bgCtx);
 
 // Draw the cached background to the visible canvas immediately
