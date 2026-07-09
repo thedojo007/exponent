@@ -82,7 +82,10 @@ def get_doc_pages(api_key: str, workspace_id: str, doc_id: str) -> list[dict]:
 
 
 def get_page_content(api_key: str, workspace_id: str, doc_id: str, page_id: str) -> dict:
-    return _api_get(api_key, API_V3, f"/workspaces/{workspace_id}/docs/{doc_id}/pages/{page_id}")
+    return _api_get(
+        api_key, API_V3,
+        f"/workspaces/{workspace_id}/docs/{doc_id}/pages/{page_id}?content_format=text/md"
+    )
 
 
 def fetch_doc_source(api_key: str, source: dict) -> str:
@@ -119,12 +122,6 @@ def main() -> None:
     if not api_key:
         raise SystemExit("CLICKUP_API_KEY is not set")
     print(fetch_all(api_key))
-
-def get_page_content(api_key: str, workspace_id: str, doc_id: str, page_id: str) -> dict:
-    return _api_get(
-        api_key, API_V3,
-        f"/workspaces/{workspace_id}/docs/{doc_id}/pages/{page_id}?content_format=text/md"
-    )
 
 if __name__ == "__main__":
     main()

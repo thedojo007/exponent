@@ -1,5 +1,6 @@
 import json
 import os
+import anthropic
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -33,15 +34,21 @@ def get_strategy(api_key: str, tasks_text: str, principles_text: str) -> list[di
     )
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_content}],
+    model="claude-sonnet-4-6",
+    max_tokens=4000,
+    system=SYSTEM_PROMPT,
+    messages=[{"role": "user", "content": user_content}],
+
     )
 
     text = next(b.text for b in response.content if b.type == "text")
     cleaned = text.replace("```json", "").replace("```", "").strip()
-    parsed = json.loads(cleaned)  # let this raise — a silent bad-parse is worse than a crash
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        print("--- RAW RESPONSE ---")
+        print(cleaned)
+        raise
     return parsed["actions"]
 
 
