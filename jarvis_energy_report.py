@@ -187,6 +187,7 @@ def send_email(subject: str, body: str) -> None:
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_email], msg.as_string())
 
+
 def main() -> None:
     clickup_key = os.getenv("CLICKUP_API_KEY")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
