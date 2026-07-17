@@ -120,6 +120,29 @@ def fetch_all(api_key: str) -> str:
             blocks.append(f"# {source['name']} — FAILED: {exc.code} {exc.reason}")
     return "\n\n".join(blocks)
 
+def get_completed_tasks(api_key: str, list_id: str, since_ts_ms: int) -> list[dict]:
+    path = f"/list/{list_id}/task?archived=false&include_closed=true&statuses[]=completed&date_updated_gt={since_ts_ms}"
+    return _api_get(api_key, API_V2, path).get("tasks", [])
+
+
+def fetch_completed_source(api_key: str, source: dict, since_ts_ms: int) -> str:
+    clickup_list = find_list(api_key, source["list_name"])
+    tasks = get_completed_tasks(api_key, clickup_list["id"], since_ts_ms)
+    lines = [f"# Completed — {source['name']} ({len(tasks)} tasks)"]
+    lines += [format_task(t) for t in tasks]
+    return "\n".join(lines)
+
+def get_list_tasks(api_key: str, list_id: str, include_closed: bool = False) -> list[dict]:
+    path = f"/list/{list_id}/task?archived=false"
+    if include_closed:
+        path += "&include_closed=true"
+    return _api_get(api_key, API_V2, path).get("tasks", [])
+
+from datetime import datetime, timedelta
+since = int((datetime.now() - timedelta(days=7)).timestamp() * 1000)
+key = os.getenv("CLICKUP_API_KEY")
+print(fetch_completed_source(key, {"name": "Task Easer Machine", "list_name": "Task Easer Machine (New)"}, since))
+
 
 # ---------- Q&A layer ----------
 
