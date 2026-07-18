@@ -16,7 +16,9 @@ Run manually for now:
 Deliberately NOT included yet (see phased plan):
 - SMS delivery (needs Twilio account — week 2)
 - Charting over time (needs multiple days of scores first — week 2)
-- Cloud/unattended scheduling (only after the score is validated — week 3)
+- Cloud/unattended scheduling: added local Task Scheduler automation to
+  reduce friction on daily validation runs. SMS delivery and charting
+  still deferred (week 2).
 """
 
 import os
@@ -36,7 +38,8 @@ from jarvis_clickup_strategy import (
     API_V2,
 )
 
-load_dotenv()
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 DAILY_LOG_LIST_NAME = "Daily Log"
 
