@@ -1,0 +1,13 @@
+Jarvis: Agent Spec
+Notes Intake Agent 분류 기준에 "Memory" 예시 2개 추가 논의 — 현재는 정의만 있고 실제 worked example이 없어서 초기 배치는 계속 수동 확인 필요하다고 판단.
+
+Jarvis: Build Log
+7/26: Shipped: jarvis_session_sync.py — parses close-out text by bucket header and posts to ClickUp Doc pages via API v3, dry-run mode validated against sample text.
+
+Jarvis State File
+Shipped: Notes Intake Agent, jarvis_session_sync.py (dry-run only, live writes not yet enabled)
+Deferred: Habit-feasibility recommender (blocked on energy score validation)
+Open: page_id.json value format fixed (page_id only, not full URL); Agent Spec key renamed to match BUCKET_HEADERS exactly; list_pages.py to confirm CLICKUP_DOC_ID is correct before first live write
+
+Jarvis 15%
+No motion this session — stayed on Jarvis build track only.
