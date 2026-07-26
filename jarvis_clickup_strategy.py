@@ -56,10 +56,6 @@ def find_list(api_key: str, list_name: str) -> dict:
     raise LookupError(f"List not found: {list_name!r}")
 
 
-def get_list_tasks(api_key: str, list_id: str) -> list[dict]:
-    return _api_get(api_key, API_V2, f"/list/{list_id}/task?archived=false").get("tasks", [])
-
-
 def format_task(task: dict) -> str:
     status = task.get("status", {}).get("status", "?")
     assignees = ", ".join(a.get("username", "?") for a in task.get("assignees", [])) or "Unassigned"
@@ -138,10 +134,10 @@ def get_list_tasks(api_key: str, list_id: str, include_closed: bool = False) -> 
         path += "&include_closed=true"
     return _api_get(api_key, API_V2, path).get("tasks", [])
 
-from datetime import datetime, timedelta
-since = int((datetime.now() - timedelta(days=7)).timestamp() * 1000)
-key = os.getenv("CLICKUP_API_KEY")
-print(fetch_completed_source(key, {"name": "Task Easer Machine", "list_name": "Task Easer Machine (New)"}, since))
+# from datetime import datetime, timedelta
+# since = int((datetime.now() - timedelta(days=7)).timestamp() * 1000)
+# key = os.getenv("CLICKUP_API_KEY")
+# print(fetch_completed_source(key, {"name": "Task Easer Machine", "list_name": "Task Easer Machine (New)"}, since))
 
 
 # ---------- Q&A layer ----------
