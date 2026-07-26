@@ -27,6 +27,7 @@ from collections import defaultdict
 from datetime import datetime
 from email.mime.text import MIMEText
 
+
 from dotenv import load_dotenv
 
 from jarvis_clickup_strategy import (
@@ -190,6 +191,14 @@ def send_email(subject: str, body: str) -> None:
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_email], msg.as_string())
 
+OUTSTANDING_LIST_ID = os.getenv("OUTSTANDING_LIST_ID")
+
+def get_professional_outcomes_updates(api_key: str, since_datetime=None) -> list[dict]:
+    tasks = get_list_tasks(api_key, OUTSTANDING_LIST_ID)
+    if since_datetime is None:
+        return tasks
+    since_ms = int(since_datetime.timestamp() * 1000)
+    return [t for t in tasks if int(t.get("date_updated", 0)) >= since_ms]
 
 def main() -> None:
     clickup_key = os.getenv("CLICKUP_API_KEY")
@@ -234,6 +243,9 @@ def main() -> None:
     print(body)
     send_email(subject, body)
     print("\nSent.")
+
+    po_updates = get_professional_outcomes_updates(clickup_key)
+    print(f"\nProfessional Outcomes tasks: {len(po_updates)}")
 
 if __name__ == "__main__":
     main()
