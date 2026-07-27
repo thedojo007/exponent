@@ -1,13 +1,10 @@
 Jarvis: Agent Spec
-Notes Intake Agent 분류 기준에 "Memory" 예시 2개 추가 논의 — 현재는 정의만 있고 실제 worked example이 없어서 초기 배치는 계속 수동 확인 필요하다고 판단.
+Notes Intake Agent 분류 기준에 "Memory" 예시 부재 논의 이어짐 — worked example 없이는 초기 배치 무인 신뢰 불가 판단 유지.
 
 Jarvis: Build Log
-7/26: Shipped: jarvis_session_sync.py — parses close-out text by bucket header and posts to ClickUp Doc pages via API v3, dry-run mode validated against sample text.
+7/26: Shipped: jarvis_session_sync.py — end-to-end validated. Fixed 7 bugs from initial outline (undefined functions, missing imports, filename mismatch, unused mode variable), removed State File overwrite/reconciliation complexity in favor of uniform append across all buckets, fixed UTF-8 encoding (stdin/stdout reconfigure + PowerShell profile for persistent console codepage), fixed crash-on-success bug in append_to_page (unhandled empty/non-JSON PUT response), confirmed CLICKUP_DOC_ID and all 7 page_ids against live API via list_pages.py. Live append confirmed working on all 4 tested buckets (Agent Spec succeeded 3x due to retries, Build Log 2x, State File 2x, 15% pending due to transient 500 errors).
 
 Jarvis State File
-Shipped: Notes Intake Agent, jarvis_session_sync.py (dry-run only, live writes not yet enabled)
-Deferred: Habit-feasibility recommender (blocked on energy score validation)
-Open: page_id.json value format fixed (page_id only, not full URL); Agent Spec key renamed to match BUCKET_HEADERS exactly; list_pages.py to confirm CLICKUP_DOC_ID is correct before first live write
-
-Jarvis 15%
-No motion this session — stayed on Jarvis build track only.
+Shipped: jarvis_session_sync.py (live, append-only, all 7 buckets mapped and verified). list_pages.py (diagnostic tool, shipped as byproduct of doc_id verification).
+Open: Cleanup required — synthetic test content duplicated on Agent Spec, Build Log, and State File pages from live-testing; must be manually removed before next real close-out is appended, or real and test data will be mixed with no distinguishing marker. 15% bucket sync unconfirmed — last attempt hit 500 error before completion, needs one clean retry next session. Minor hardening open: script silently treats any malformed flag (e.g. mistyped dry-run variant) as live mode with no warning — worth a stricter arg check before this is trusted unattended.
+Deferred: Habit-feasibility recommender (blocked on energy score validation, unchanged).
