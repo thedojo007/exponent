@@ -1,9 +1,30 @@
 {
-    "Jarvis: Vision & Philosophy": "8cqjyhy-1537",
-    "Jarvis: Agent Spec": "8cqjyhy-1557",
-    "Jarvis: ClickUp Setup Notes": "8cqjyhy-1577",
-    "Jarvis: Build Log": "8cqjyhy-1597",
-    "Jarvis: Product & Monetization": "8cqjyhy-1617",
-    "Jarvis State File": "8cqjyhy-1777",
-    "Jarvis 15%": "8cqjyhy-1397"
+  "Jarvis: Vision & Philosophy": {
+    "doc_id": "8cqjyhy-2817",
+    "page_id": "8cqjyhy-2397"
+  },
+  "Jarvis: Agent Spec": {
+    "doc_id": "8cqjyhy-2697",
+    "page_id": "8cqjyhy-2277"
+  },
+  "Jarvis: ClickUp Setup Notes": {
+    "doc_id": "8cqjyhy-2777",
+    "page_id": "8cqjyhy-2357"
+  },
+  "Jarvis: Build Log": {
+    "doc_id": "8cqjyhy-2797",
+    "page_id": "8cqjyhy-2377"
+  },
+  "Jarvis: Product & Monetization": {
+    "doc_id": "8cqjyhy-2717",
+    "page_id": "8cqjyhy-2297"
+  },
+  "Jarvis State File": {
+    "doc_id": "8cqjyhy-2757",
+    "page_id": "8cqjyhy-2337"
+  },
+  "Jarvis 15%": {
+    "doc_id": "8cqjyhy-2837",
+    "page_id": "8cqjyhy-2417"
   }
+}
