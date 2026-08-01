@@ -1,4 +1,4 @@
-"""
+r"""
 project_lookup.py
 
 Always-on-top project code lookup for ERP voucher entry.
@@ -6,7 +6,7 @@ Type to filter by project name / customer / ERP code. Click a row (or press
 Enter on the top match) to copy the ERP code to clipboard.
 
 Usage:
-    py project_lookup.py "path\to\ERP상_프로젝트_코드_및_지급_입금_계좌_정리.xlsx"
+    print(r'py project_lookup.py "path\to\ERP상_프로젝트_코드_및_지급_입금_계좌_정리.xlsx"')
 
 If no path is given, it looks for the xlsx in the same folder as this script.
 """
@@ -17,6 +17,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 import openpyxl
+
 
 
 def find_default_path():
@@ -58,16 +59,19 @@ class LookupApp:
         self.entry.bind("<Return>", self.on_enter)
         self.entry.focus_set()
 
-        columns = ("erp_code", "project", "customer", "account")
+        columns = ("local_code", "erp_code", "project", "customer", "account")
         self.tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
+        self.tree.heading("local_code", text="US Code")
         self.tree.heading("erp_code", text="ERP Code")
         self.tree.heading("project", text="Project")
         self.tree.heading("customer", text="Customer")
         self.tree.heading("account", text="Account")
+        self.tree.column("local_code", width=80)
         self.tree.column("erp_code", width=100)
-        self.tree.column("project", width=230)
+        self.tree.column("project", width=200)
         self.tree.column("customer", width=100)
         self.tree.column("account", width=90)
+
         self.tree.pack(fill="both", expand=True, padx=8, pady=(0, 4))
         self.tree.bind("<Double-1>", self.on_click)
 
@@ -77,6 +81,7 @@ class LookupApp:
 
         self.refresh("")
 
+        
     def search(self, query):
         q = query.lower().strip()
         if not q:
@@ -92,7 +97,7 @@ class LookupApp:
             self.tree.delete(item)
         results = self.search(query)
         for r in results[:50]:
-            self.tree.insert("", "end", values=(r["erp_code"], r["project"], r["customer"], r["account"]))
+            self.tree.insert("", "end", values=(r["local_code"], r["erp_code"], r["project"], r["customer"], r["account"]))
         self.status.config(text=f"{len(results)} match(es)")
 
     def on_key(self, event):
@@ -107,7 +112,7 @@ class LookupApp:
             if not children:
                 return
             values = self.tree.item(children[0], "values")
-        erp_code = values[0]
+        erp_code = values[1]
         self.root.clipboard_clear()
         self.root.clipboard_append(erp_code)
         self.status.config(text=f"Copied: {erp_code}")
