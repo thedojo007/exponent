@@ -1,19 +1,11 @@
 Jarvis: Build Log
 
-8/1: Shipped: project_lookup.py — fixed SyntaxWarning (raw docstring)
-8/1: Shipped: project_lookup.py — added US-code column, restored Treeview init after paste error, verified 28-row output
-
-Jarvis: Agent Spec
-No agent spec changes this session — project_lookup.py is a deterministic script, not an agent (no LLM call, no principle 5/8 applicability).
+8/15: Shipped: jarvis_session_sync.py idempotency — fully validated end-to-end against the real ClickUp page: fast-path (local hash), self-heal (live-content check, survives lost local state), retry-with-backoff (survives connection drops), markdown-unescape fix (survives underscore-containing filenames, e.g. jarvis_session_sync.py itself). Two real bugs found and fixed via actual production runs against real receipts and real ClickUp data, not sandbox-only testing.
+8/15: Shipped: memory correction — fixed hardcoded "7/[date]" Build Log date format in Claude's own governing instructions (edits #1, #2), added explicit rule (#11) requiring the actual current date from system context on every dated entry, never inferred or pattern-matched from prior entries.
 
 Jarvis State File
 
-Shipped: project_lookup.py — read-only ERP project-code lookup for American branch, working, verified against 28 rows, dual-code display (US code + ERP code).
-Open: extending lookup tool to company-wide project registry (프로젝트실행예산조회_KY) — schema mismatch identified (2-column company file vs. 6-column US file), not yet built. Ownership question flagged: file likely belongs to Korean HQ, not 성윤 — needs acknowledgment before pitching as "extended."
-Deferred: ERP-Groupware evidence bridge (advisory agent, principle 5/8 spec needed before any build).
-
-Jarvis: Product & Monetization
-CEO visiting American branch, serious about company-wide AI rollout — targeting quotation submission and construction drawing/modeling specifically, plans to recruit 10 new grads via a Korean college. Scoping discussion concluded: project_lookup.py (already built) is the one artifact worth presenting as proof-of-competence. Pitch should frame the company-wide extension as validated pattern, not a finished capability — schema differs enough that claiming "extended" without testing would be overstating readiness.
-
-Jarvis 15%
-This whole session was 15%-track (weekend prep for CEO conversation), not primary Jarvis build time.
+jarvis_session_sync.py: shipped → fully validated. Idempotency confirmed against real production data across multiple failure modes (lost local state, connection drop, markdown escaping).
+Date-formatting bug in Claude's own Build Log entries: fixed at the instruction level. The compiled memory summary shown at the top of a new conversation may lag behind this fix until the next background regeneration — that's expected system behavior, not a sign the fix didn't take.
+Open, carried from earlier sessions, untouched today: Task Easer eased tag reset policy (small, still just a decision, not a build); ERP receipt automation next unit; Habit Hawk's three unresolved concerns; LinkedIn placeholder.
+Cleanup still owed by hand, not by script: leftover TEST ENTRY lines on the Build Log and State File ClickUp pages from the earlier failed sync attempts — confirm these got deleted.
