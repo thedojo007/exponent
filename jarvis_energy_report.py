@@ -1,6 +1,10 @@
 """
 jarvis_energy_report.py
 
+DEPRECATED — slated to be 86'd once a ClickUp agent can replicate it.
+Do not add new callers. Shared pieces that other programs need already
+live elsewhere and must stay when this file is deleted.
+
 Reads today's checklist from the "Daily Log" list (written by Ops Odin
 after each "status" check-in), scores it, gets one line of advice, emails
 the result.
@@ -9,6 +13,30 @@ Deliberately does NOT depend on ClickUp custom fields — Ops Odin cannot
 create them and manual setup is a dependency this doesn't need. The
 checklist itself is the record: each item's resolved/unresolved state and
 its embedded "[title] — [category] — [due status]" text is enough.
+
+What a ClickUp agent must replicate (unique to this program — can go):
+- Find the Daily Log task whose title is today's YYYY-MM-DD
+- Flatten that task's checklists
+- Parse item text as "[title] — [category] — [due status]"
+- Parse sleep as "Sleep - sleep6:(y|n|u) rested:(y|n|u) strenuous:(y|n|u)"
+- Energy score 0-10 from sleep only: +5 if slept_6plus, +5 if rested,
+  -2 if strenuous_prior_day (floor 0). If a core sleep signal is
+  missing, scale by (known core signals / 2). Task completion is a
+  separate axis and never enters this number.
+- One-sentence Claude advice from ClickUp context
+- Email STATUS + ENERGY + advice via Gmail SMTP
+
+What other files already use and must be kept (not in this file):
+- jarvis_clickup_strategy.find_list / get_list_tasks / fetch_all /
+  ask_claude / _api_get / API_V2 — used by strategy_console and the
+  ClickUp Q&A program itself
+- jarvis_clickup_strategy.get_professional_outcomes_updates — standalone
+  15%-Career helper; was only hosted here, now lives in the shared module
+- CLICKUP_API_KEY, ANTHROPIC_API_KEY, OUTSTANDING_LIST_ID in .env
+
+Energy-report-only (can go with this file):
+- SMTP_USER, SMTP_APP_PASSWORD, REPORT_TO_EMAIL
+- send_email() and all Daily Log / sleep-score helpers below
 
 Run manually for now:
     python jarvis_energy_report.py
@@ -37,6 +65,7 @@ from jarvis_clickup_strategy import (
     ask_claude,
     _api_get,
     API_V2,
+    get_professional_outcomes_updates,
 )
 
 from pathlib import Path
@@ -190,15 +219,6 @@ def send_email(subject: str, body: str) -> None:
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_email], msg.as_string())
-
-OUTSTANDING_LIST_ID = os.getenv("OUTSTANDING_LIST_ID")
-
-def get_professional_outcomes_updates(api_key: str, since_datetime=None) -> list[dict]:
-    tasks = get_list_tasks(api_key, OUTSTANDING_LIST_ID)
-    if since_datetime is None:
-        return tasks
-    since_ms = int(since_datetime.timestamp() * 1000)
-    return [t for t in tasks if int(t.get("date_updated", 0)) >= since_ms]
 
 def main() -> None:
     clickup_key = os.getenv("CLICKUP_API_KEY")
