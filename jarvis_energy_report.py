@@ -1,14 +1,19 @@
 """
 jarvis_energy_report.py
 
-Reads today's checklist from the "Daily Log" list (written by Ops Odin
-after each "status" check-in), scores it, gets one line of advice, emails
-the result.
+Reads today's sleep signal from the "Daily Log" list and scores it,
+emails the result. Reads sleep data from a real checklist item if present,
+falling back to a plain-text "Sleep - sleep6:y rested:y strenuous:n" line
+in the task description if not (current Morning Thunder behavior, mirrors
+into description rather than creating a checklist item — see 8/22 diagnosis).
 
-Deliberately does NOT depend on ClickUp custom fields — Ops Odin cannot
-create them and manual setup is a dependency this doesn't need. The
-checklist itself is the record: each item's resolved/unresolved state and
-its embedded "[title] — [category] — [due status]" text is enough.
+Task-completion stats (STATUS section) still require actual checklist
+items and will read as 0/0 with a flag when none exist — that data source
+has had a separate, unrelated gap since 8/18 and is not fixed by this
+patch.
+
+Advice generation (Claude call) was cut 8/22 — redundant with Gate One
+Gus (energy → action) and Morning Thunder (briefing). See Graveyard Log.
 
 Run manually for now:
     python jarvis_energy_report.py
@@ -22,19 +27,17 @@ Deliberately NOT included yet (see phased plan):
 """
 
 import os
+import re
 import smtplib
 from collections import defaultdict
 from datetime import datetime
 from email.mime.text import MIMEText
-
 
 from dotenv import load_dotenv
 
 from jarvis_clickup_strategy import (
     find_list,
     get_list_tasks,
-    fetch_all,
-    ask_claude,
     _api_get,
     API_V2,
 )
@@ -59,16 +62,6 @@ def find_daily_log_task(api_key: str, date_str: str | None = None) -> dict | Non
     return None
 
 
-def get_checklist_items(api_key: str, task_id: str) -> list[dict]:
-    """Fetch the task directly (not via the list endpoint) to guarantee
-    checklist data is present, then flatten all checklist items."""
-    task = _api_get(api_key, API_V2, f"/task/{task_id}")
-    items = []
-    for checklist in task.get("checklists", []):
-        items.extend(checklist.get("items", []))
-    return items
-
-
 def parse_category(item_name: str) -> str:
     """Item text format: '[title] — [category] — [due status]'."""
     parts = item_name.split(" — ")
@@ -76,9 +69,9 @@ def parse_category(item_name: str) -> str:
         return parts[1].strip()
     return "Other"
 
-import re
 
 def parse_sleep_data(items: list[dict]) -> dict | None:
+    """Sleep data from a real checklist item (legacy Ops Odin behavior)."""
     for item in items:
         name = item.get("name", "")
         if name.startswith("Sleep - "):
@@ -94,6 +87,26 @@ def parse_sleep_data(items: list[dict]) -> dict | None:
                     "strenuous_prior_day": to_bool(match.group(3)),
                 }
     return None
+
+
+def parse_sleep_data_from_text(text: str) -> dict | None:
+    """Fallback: sleep line written as free text in the task description
+    (current Morning Thunder mirror behavior, since ~8/18)."""
+    match = re.search(
+        r"Sleep - sleep6:(y|n|u)\s+rested:(y|n|u)\s+strenuous:(y|n|u)", text
+    )
+    if not match:
+        return None
+
+    def to_bool(v):
+        return None if v == "u" else v == "y"
+
+    return {
+        "slept_6plus": to_bool(match.group(1)),
+        "rested": to_bool(match.group(2)),
+        "strenuous_prior_day": to_bool(match.group(3)),
+    }
+
 
 def compute_task_stats(task_items: list[dict]) -> dict:
     total = len(task_items)
@@ -117,10 +130,9 @@ def compute_task_stats(task_items: list[dict]) -> dict:
     }
 
 
-def compute_sleep_score(items: list[dict]) -> dict:
+def compute_sleep_score_from_data(sleep_data: dict | None) -> dict:
     """Energy score, 0-10, derived ONLY from sleep/rest/strenuousness.
     Task completion is a separate axis and never enters this number."""
-    sleep_data = parse_sleep_data(items)
     if sleep_data is None:
         return {"score": None, "slept_6plus": None, "rested": None, "strenuous_prior_day": None}
 
@@ -145,33 +157,33 @@ def compute_sleep_score(items: list[dict]) -> dict:
 def compute_daily_report(api_key: str, date_str: str | None = None) -> dict:
     task = find_daily_log_task(api_key, date_str)
     if task is None:
-        return {"has_data": False, "note": "No Daily Log entry for this date — send \"status\" to Ops Odin and complete a check-in first."}
+        return {"has_data": False, "note": "No Daily Log entry for this date — check Morning Thunder ran today."}
 
-    items = get_checklist_items(api_key, task["id"])
-    if not items:
-        return {"has_data": False, "note": "Today's Daily Log entry has no checklist items yet."}
+    full_task = _api_get(api_key, API_V2, f"/task/{task['id']}")
+    items = []
+    for checklist in full_task.get("checklists", []):
+        items.extend(checklist.get("items", []))
+
+    description = full_task.get("text_content") or full_task.get("description") or ""
+    sleep_data = parse_sleep_data(items) or parse_sleep_data_from_text(description)
+
+    if not items and sleep_data is None:
+        return {"has_data": False, "note": "Today's Daily Log entry has no checklist items and no sleep line yet."}
 
     task_items = [i for i in items if parse_category(i.get("name", "")) != "Sleep"]
-    return {"has_data": True, **compute_task_stats(task_items), **compute_sleep_score(items)}
+    stats = compute_task_stats(task_items)
+    if not items:
+        stats["no_checklist_data"] = True
+
+    score = compute_sleep_score_from_data(sleep_data)
+    return {"has_data": True, **stats, **score}
+
 
 def format_category_breakdown(breakdown: dict) -> str:
     lines = []
     for cat, counts in sorted(breakdown.items()):
         lines.append(f"  {cat}: {counts['completed']}/{counts['total']}")
     return "\n".join(lines)
-
-
-def get_advice(api_key: str, anthropic_key: str, score_data: dict) -> str:
-    context = fetch_all(api_key)
-    breakdown_str = format_category_breakdown(score_data["category_breakdown"])
-    question = (
-        f"Today's computed energy score is {score_data['score']}/10 "
-        f"({score_data['completed']}/{score_data['total']} checklist items "
-        f"done). Category breakdown:\n{breakdown_str}\n\n"
-        "Give exactly one direct sentence of advice for tomorrow based on the "
-        "ClickUp context. No filler, no encouragement for its own sake."
-    )
-    return ask_claude(anthropic_key, context, question, max_tokens=150)
 
 
 def send_email(subject: str, body: str) -> None:
@@ -191,7 +203,9 @@ def send_email(subject: str, body: str) -> None:
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_email], msg.as_string())
 
+
 OUTSTANDING_LIST_ID = os.getenv("OUTSTANDING_LIST_ID")
+
 
 def get_professional_outcomes_updates(api_key: str, since_datetime=None) -> list[dict]:
     tasks = get_list_tasks(api_key, OUTSTANDING_LIST_ID)
@@ -200,11 +214,11 @@ def get_professional_outcomes_updates(api_key: str, since_datetime=None) -> list
     since_ms = int(since_datetime.timestamp() * 1000)
     return [t for t in tasks if int(t.get("date_updated", 0)) >= since_ms]
 
+
 def main() -> None:
     clickup_key = os.getenv("CLICKUP_API_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if not clickup_key or not anthropic_key:
-        raise SystemExit("CLICKUP_API_KEY and ANTHROPIC_API_KEY must both be set")
+    if not clickup_key:
+        raise SystemExit("CLICKUP_API_KEY must be set")
 
     today = datetime.now().strftime("%Y-%m-%d")
     report = compute_daily_report(clickup_key)
@@ -217,13 +231,16 @@ def main() -> None:
         print("\nSent.")
         return
 
-    breakdown_str = format_category_breakdown(report["category_breakdown"])
-    status_section = (
-        f"STATUS\n"
-        f"Completed: {report['completed']}/{report['total']} "
-        f"({report['carried_over']} carried over)\n\n"
-        f"By category:\n{breakdown_str}"
-    )
+    if report.get("no_checklist_data"):
+        status_section = "STATUS\nNo checklist data since ~8/18 (Morning Thunder writes to description, not checklist)."
+    else:
+        breakdown_str = format_category_breakdown(report["category_breakdown"])
+        status_section = (
+            f"STATUS\n"
+            f"Completed: {report['completed']}/{report['total']} "
+            f"({report['carried_over']} carried over)\n\n"
+            f"By category:\n{breakdown_str}"
+        )
 
     if report["score"] is not None:
         energy_section = (
@@ -234,9 +251,7 @@ def main() -> None:
     else:
         energy_section = "ENERGY: no sleep data logged today"
 
-    advice = get_advice(clickup_key, anthropic_key, report)
-
-    body = f"{status_section}\n\n{energy_section}\n\n{advice}"
+    body = f"{status_section}\n\n{energy_section}"
     subject_score = f"{report['score']}/10" if report["score"] is not None else "no energy data"
     subject = f"Jarvis daily report — {today} — energy {subject_score}"
 
@@ -246,6 +261,7 @@ def main() -> None:
 
     po_updates = get_professional_outcomes_updates(clickup_key)
     print(f"\nProfessional Outcomes tasks: {len(po_updates)}")
+
 
 if __name__ == "__main__":
     main()
