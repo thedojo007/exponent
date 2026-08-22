@@ -138,6 +138,20 @@ def get_list_tasks(api_key: str, list_id: str, include_closed: bool = False) -> 
     return _api_get(api_key, API_V2, path).get("tasks", [])
 
 
+# Kept here (not in jarvis_energy_report) so it survives when that
+# program is 86'd. Listed as its own 15%-Career capability.
+OUTSTANDING_LIST_ID = os.getenv("OUTSTANDING_LIST_ID")
+
+
+def get_professional_outcomes_updates(api_key: str, since_datetime=None) -> list[dict]:
+    """Return Outstanding List tasks, optionally filtered by date_updated."""
+    tasks = get_list_tasks(api_key, OUTSTANDING_LIST_ID)
+    if since_datetime is None:
+        return tasks
+    since_ms = int(since_datetime.timestamp() * 1000)
+    return [t for t in tasks if int(t.get("date_updated", 0)) >= since_ms]
+
+
 # ---------- Q&A layer ----------
 
 SYSTEM_PROMPT_TEMPLATE = """You are Jarvis, 성윤's coordinator-layer assistant.
