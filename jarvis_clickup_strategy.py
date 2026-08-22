@@ -4,10 +4,11 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 API_V2 = "https://api.clickup.com/api/v2"
 API_V3 = "https://api.clickup.com/api/v3"
@@ -17,6 +18,8 @@ ANTHROPIC_MODEL = "claude-sonnet-5"
 # One entry per ClickUp source Jarvis should read.
 # type "list"  -> task list (proven path)
 # type "doc"   -> ClickUp Doc page content (unverified path — test this)
+# Weekly Goals still looks up by list name. "July list" is calendar-stale;
+# update list_name when the current weekly list is known. Do not guess.
 SOURCES = [
     {"name": "Weekly Goals", "type": "list", "list_name": "July list"},
     {"name": "Task Easer Machine", "type": "list", "list_name": "Task Easer Machine (New)"},
@@ -133,11 +136,6 @@ def get_list_tasks(api_key: str, list_id: str, include_closed: bool = False) -> 
     if include_closed:
         path += "&include_closed=true"
     return _api_get(api_key, API_V2, path).get("tasks", [])
-
-# from datetime import datetime, timedelta
-# since = int((datetime.now() - timedelta(days=7)).timestamp() * 1000)
-# key = os.getenv("CLICKUP_API_KEY")
-# print(fetch_completed_source(key, {"name": "Task Easer Machine", "list_name": "Task Easer Machine (New)"}, since))
 
 
 # ---------- Q&A layer ----------

@@ -1,13 +1,13 @@
 import json
 import os
-import anthropic
+from pathlib import Path
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-from clickup_taskrev import fetch_list_source, fetch_doc_source, SOURCES
+from jarvis_clickup_strategy import fetch_list_source, fetch_doc_source, SOURCES
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 SYSTEM_PROMPT = """당신은 사용자의 ClickUp 태스크와 개인 행동 원칙을 바탕으로 가장 전략적인 실행 순서를 계산하는 엔진입니다.
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트, 설명, 마크다운 코드블록 없이 순수 JSON만 반환합니다.
@@ -69,7 +69,7 @@ def main() -> None:
     if not anthropic_key:
         raise SystemExit("ANTHROPIC_API_KEY is not set")
 
-    tasks_source = next(s for s in SOURCES if s["type"] == "list")
+    tasks_source = next(s for s in SOURCES if s["name"] == "Weekly Goals")
     principles_source = next(s for s in SOURCES if s["type"] == "doc")
 
     tasks_text = fetch_list_source(clickup_key, tasks_source)

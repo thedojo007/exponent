@@ -1,11 +1,28 @@
-Jarvis: Build Log
+Jarvis: Vision & Philosophy
+(nothing this session)
 
-8/15: Shipped: jarvis_session_sync.py idempotency — fully validated end-to-end against the real ClickUp page: fast-path (local hash), self-heal (live-content check, survives lost local state), retry-with-backoff (survives connection drops), markdown-unescape fix (survives underscore-containing filenames, e.g. jarvis_session_sync.py itself). Two real bugs found and fixed via actual production runs against real receipts and real ClickUp data, not sandbox-only testing.
-8/15: Shipped: memory correction — fixed hardcoded "7/[date]" Build Log date format in Claude's own governing instructions (edits #1, #2), added explicit rule (#11) requiring the actual current date from system context on every dated entry, never inferred or pattern-matched from prior entries.
+Jarvis: Agent Spec
+(nothing this session — no super-agent spec changed, only scripts)
+
+Jarvis: ClickUp Setup Notes
+
+Confirmed Build Log task list (list_id 901715560513) and Components list (list_id 901715560511) are the two live lists in the Jarvis space (space_id 90176624384); the 15%-Career folder exists but contains no lists and returns 403 on doc-id lookup (unresolved, flagged, not urgent).
+What Works/Doesn't reference doc identified as "Guidelines v.2" — doc_id 8cqjyhy-757, page_id 8cqjyhy-837 (confirmed via fetch_page_ids.py; the URL slug 8cqjyhy-1137 was wrong — a guessed page_id that did not match the real one, confirming the slug-vs-real-ID gap the codebase already warned about).
+page_id.json refreshed: 8/9 buckets confirmed live, page_id.json refreshed: 8/9 buckets confirmed live, the 15%-Career bucket failed (403, permissions issue — separate from the doc_id/page_id problem)..
+
+Jarvis: Build Log
+8/16: Shipped: list_context_check.py — read-only script confirms Build Log task-list auth and Context custom-field resolution (55/55 tasks resolved correctly, 1 unset flagged)
+8/16: Shipped: space_inventory.py — read-only inventory of Jarvis space (2 lists, 77 tasks total at time of run); confirmed Box B's scope was small enough for a single synthesis call, no chunking needed
+8/16: Shipped: jarvis_next_steps.py — rewritten to read Build Log + Components task lists via Context custom field instead of doc-chunk extraction (extract_items.py/classify() now orphaned — not deleted, flagged for cleanup decision); added isolated priority-synthesis module (task list + Guidelines v.2 doc → top 3 ranked recommendation, print-only, no write-back to ClickUp Priority field). Fixed thinking-token budget bug: default extended thinking silently consumed the full max_tokens before any text output (stop_reason: max_tokens, content: ['thinking'] only) — resolved by disabling thinking and raising max_tokens to 1000 for this call.
+
+Jarvis: Graveyard Log
+8/16: Graveyard: default extended-thinking on Claude API calls with low max_tokens — silently consumes entire budget before any text output, stop_reason: max_tokens with content: ['thinking'] only, no error raised.
+
+Jarvis: Product & Monetization
+(nothing this session)
 
 Jarvis State File
 
-jarvis_session_sync.py: shipped → fully validated. Idempotency confirmed against real production data across multiple failure modes (lost local state, connection drop, markdown escaping).
-Date-formatting bug in Claude's own Build Log entries: fixed at the instruction level. The compiled memory summary shown at the top of a new conversation may lag behind this fix until the next background regeneration — that's expected system behavior, not a sign the fix didn't take.
-Open, carried from earlier sessions, untouched today: Task Easer eased tag reset policy (small, still just a decision, not a build); ERP receipt automation next unit; Habit Hawk's three unresolved concerns; LinkedIn placeholder.
-Cleanup still owed by hand, not by script: leftover TEST ENTRY lines on the Build Log and State File ClickUp pages from the earlier failed sync attempts — confirm these got deleted.
+Shipped: task-list-based Next Steps generation with grounded priority synthesis (read-only, module-isolated).
+Deferred: Deferred: the 15%-Career bucket's 403 permission issue; extract_items.py/classify() dead-code decision; write-back of AI-suggested priority into ClickUp's Priority field (deliberately out of scope, not just deferred by time).
+Open: confirm full next_steps.md output quality (3 tasks genuinely grounded, not just plausible-sounding) before treating the priority feature as fully validated rather than "ran once successfully."

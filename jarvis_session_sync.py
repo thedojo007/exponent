@@ -1,4 +1,10 @@
 # jarvis_session_sync.py
+#
+# Session close-out: append session.txt buckets to mapped ClickUp Docs.
+#
+#   python jarvis_session_sync.py
+#   python jarvis_session_sync.py --dry-run
+#
 import sys, json, os, re, time, hashlib
 import requests
 from pathlib import Path
@@ -29,6 +35,7 @@ BUCKET_HEADERS = [
     "Jarvis: Product & Monetization",
     "Jarvis State File",
     "Jarvis 15%",
+    "Jarvis: Graveyard Log",
 ]
 
 
