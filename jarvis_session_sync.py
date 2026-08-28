@@ -5,7 +5,7 @@
 #   python jarvis_session_sync.py
 #   python jarvis_session_sync.py --dry-run
 #
-import sys, json, os, re, time, hashlib
+import sys, json, os, re, time, hashlib, argparse
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
@@ -17,7 +17,33 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 API_KEY = os.getenv("CLICKUP_API_KEY")
 WORKSPACE_ID = os.getenv("CLICKUP_WORKSPACE_ID")
-DRY_RUN = "--dry-run" in sys.argv
+
+
+def parse_args():
+    """Strict CLI arg parsing -- previously DRY_RUN = "--dry-run" in sys.argv
+    silently treated any malformed/misspelled flag (--dryrun, --Dry-Run,
+    --dry-run-, etc.) as live mode with zero warning. Any unrecognized
+    argument now hard-fails before touching ClickUp, instead of silently
+    falling through to a production write."""
+    parser = argparse.ArgumentParser(
+        description="Session close-out: append session.txt buckets to mapped ClickUp Docs."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview what would be synced without writing to ClickUp.",
+    )
+    args, unknown = parser.parse_known_args()
+    if unknown:
+        print(f"[ERROR] Unrecognized argument(s): {unknown}")
+        print("        Refusing to run in live mode with unrecognized flags.")
+        print("        Did you mean --dry-run?")
+        sys.exit(1)
+    return args
+
+
+ARGS = parse_args()
+DRY_RUN = ARGS.dry_run
 
 SESSION_FILE = Path(__file__).resolve().parent / "session.txt"
 PAGE_ID_FILE = Path(__file__).resolve().parent / "page_id.json"
@@ -75,8 +101,14 @@ def content_hash(text: str) -> str:
 
 
 def parse_buckets(text: str) -> dict[str, str]:
-    pattern = "|".join(re.escape(h) for h in BUCKET_HEADERS)
-    splits = re.split(f"({pattern})", text)
+    # Anchored to start-of-line (optionally after markdown heading markers
+    # like ## or **) so a header string mentioned in prose mid-sentence
+    # doesn't get mistaken for an actual bucket boundary. re.MULTILINE
+    # makes ^ match after every newline, not just string start.
+    escaped = [re.escape(h) for h in BUCKET_HEADERS]
+    pattern = "|".join(escaped)
+    line_anchored = rf"^(?:#{{1,6}}\s*|\*\*)?({pattern})(?:\*\*)?\s*$"
+    splits = re.split(line_anchored, text, flags=re.MULTILINE)
     buckets = {}
     for i in range(1, len(splits), 2):
         header = splits[i].strip()

@@ -1,51 +1,39 @@
 [
   {
-    "name": "YBTour 나누기",
+    "name": "박세진 부장님에게 자금계획 보내기",
+    "status": "backlog"
+  },
+  {
+    "name": "Ask mail depot about wrong delivered mail",
+    "status": "backlog"
+  },
+  {
+    "name": "증여 어렸을때 넘겨줄 증여 정리(?)",
     "status": "pushable"
   },
   {
-    "name": "죠기",
+    "name": "AP, PO 발행하기 - flower bunch, Bill to W9",
     "status": "pushable"
   },
   {
-    "name": "이2/2400 기대 업데이트",
+    "name": "Sikla 전표 - 맞는지",
     "status": "pushable"
   },
   {
-    "name": "check 지정부의M",
-    "status": "pushable"
+    "name": "관세 그분 되게 하기",
+    "status": "backlog"
   },
   {
-    "name": "2차 조일들",
-    "status": "pushable"
+    "name": "실비 정산하기",
+    "status": "backlog"
   },
   {
-    "name": "지정훈 차장에 투자회사에서 목금 되돌아올 돈",
-    "status": "pushable"
-  },
-  {
-    "name": "의3 법인 이자",
-    "status": "pushable"
-  },
-  {
-    "name": "자동차일 - 2통을 일련번호 주의",
-    "status": "on hold"
+    "name": "조서정 사원 시킨 일 알아보기",
+    "status": "backlog"
   },
   {
     "name": "send 시재 보고 every week to 김이사님",
     "status": "on hold"
-  },
-  {
-    "name": "한근혼 차장 이메일 답변 주기",
-    "status": "pushable"
-  },
-  {
-    "name": "김지원 수금 현황 전달 주기",
-    "status": "pushable"
-  },
-  {
-    "name": "매출 이월 아이템 정리",
-    "status": "pushable"
   },
   {
     "name": "overdue items-",
@@ -57,14 +45,6 @@
   },
   {
     "name": "Remember to pay rent",
-    "status": "pushable"
-  },
-  {
-    "name": "지정훈 차장에 은행명 등록하기 요청 ",
-    "status": "pushable"
-  },
-  {
-    "name": "황성욱 이사님 메시지 보기",
     "status": "pushable"
   },
   {

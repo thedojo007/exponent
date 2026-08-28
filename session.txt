@@ -1,28 +1,26 @@
 Jarvis: Agent Spec
 
-New standing constraint discovered, applies to all future device-dependent builds: cloud-scheduled Claude tasks cannot reach local MCP bridges (remote-devices) — confirmed structurally, not intermittently. Any automation needing local file/device access (ERP receipt automation, future device-touching builds) must be either interactive or a Python script + Windows Task Scheduler job, never a Claude scheduled task.
-자금일보 학습 규칙 업데이트: converted from a ClickUp-scheduled cloud task to a Claude Desktop Skill (스킬로 전환), invoked manually going forward — cloud trigger was confirmed dead by design, not a bug.
-Claude now has direct ClickUp connector read/write access in chat (confirmed live: clickup_create_task, clickup_search, clickup_filter_tasks, doc CRUD, etc.). Standing rule added: writes require explicit go-ahead each time; jarvis_session_sync.py stays default write path for Build Log/State File. Read-only calls don't require confirmation.
+New standing step in the end-session protocol (not a ClickUp Brain agent — a Claude session-partner behavior): at every "end session," before the recap, scan for anything resolved during the session — shipped or decided-without-shipping — and check it against Build Log for a matching task before closing out. Demonstrated manually twice today; now a standing step, not opportunistic. This is the "Closure path" half of the Session-to-Task pipeline rescope below — deliberately kept manual, not scripted, until it's run across enough real sessions to know what a matcher would need to handle.
 
 Jarvis: ClickUp Setup Notes
 
-Outstanding List confirmed at list ID 901715544578 under Professional Outcomes space (id 90173603574), 21 open items surveyed. All 21 have priority: null; 20/21 have no due date. Offer still open to set real values on these.
+Workspace audit, cross-referenced against What Works v5 (145 rows, up from the 129 the last System Board snapshot cites):
+
+Build Log (95 tasks): 68% backlog, 18% shipped, 9% cancelled. Priority null on all but 4; due date null on effectively all. No staleness/downgrade mechanism exists for Build Log the way task_easer.py covers Task Easer Machine.
+Components (31 tasks): 84% shipped — accurate, functions as real source of truth for what's live.
+Outstanding List (Kumyang work): near-100% completion, fast cycle time — contrast case proving execution is strong under real stakes.
+Daily Log (27 entries): status field never used — 100% "to do," 0% ever "complete." All signal lives in free text, not queryable. Two silent 5-day gaps found with no entries and no flag (Aug 1–5, Aug 7–11).
 
 Jarvis: Build Log
 
-8/21: Shipped: daily_log.py — added Outstanding List leverage-picks module (2 lowest-input/highest-Claude-output tasks, hard-excludes financial authorization items), placed at top of Page 1 above the task table; confirmed working end-to-end.
-
-git add .
-git commit -m "Add leverage-picks module to daily_log.py"
-git push
+8/24: Decided (not shipped): task_easer.py 'eased' tag — manual-only reset confirmed, no auto-clear logic existed to remove. Task 86e2gm9gh → cancelled.
+8/24: Decided (not shipped): 학습 규칙 주간 요약 scope-drift task — root cause was structural (cloud-scheduled task hitting a permanent local-reach wall), not a scope bug. Superseded by the already-shipped kumyoung-cash-report-learn skill. Task 86e2y2tq8 → cancelled.
+8/24: Rescoped: Session-to-Task pipeline (86e2y2tp8) — split into Creation path (deferred) and Closure path (live now as process, not code). Status → scoping.
 
 Jarvis: Graveyard Log
 
-8/21: Graveyard: leverage-picks module's first home in jarvis_next_steps.py — wrong artifact (writes to a ClickUp doc you don't physically review each morning); superseded by placement in daily_log.py, the file actually printed/read daily.
-8/21: Graveyard: 자금일보 학습 규칙 업데이트 scheduled task auto-trigger — remote-devices connector not reachable from cloud-scheduled sessions, structurally, regardless of device sleep/wake state or manual retry.
+8/24: Graveyard: Weekly SKILL.md diff-tracking (학습 규칙 scope drift task, Step 1) — never surfaced a real finding across its runs; killed via negativa, not rebuilt local.
 
 Jarvis State File
 
-Shipped: daily_log.py leverage-picks module.
-Open/unresolved: (1) 학습 규칙 주간 요약 weekly task showing scope drift — reported 4 skills instead of the scoped 1, meaning ~/skill_rules_watch/repo's git history isn't persisting across weekly cloud runs. This is a shipped-but-misbehaving item, not a new build — worth the 2:1 loss-aversion framing if it stings on review: fix the persistence/scope bug, don't scrap the task. (2) D:\2.3 자금 일보 자료 folder access via Claude Desktop's "Add folder" — requested, not yet confirmed granted or re-tested end-to-end.
-Deferred: setting real priority/due-date values on the 21 open Outstanding List items — offered twice, not yet actioned.
+As of 8/24: task_easer.py eased-tag policy closed (manual-only, no code). 학습 규칙 주간 요약 weekly task closed/superseded by kumyoung-cash-report-learn skill; its SKILL.md-diff half killed outright. Session-to-Task pipeline rescoped — Closure path live as process, Creation path deferred pending real-run data. Open: Graveyard Log ClickUp doc still has no confirmed doc ID — Graveyard entries have nowhere to land automatically.

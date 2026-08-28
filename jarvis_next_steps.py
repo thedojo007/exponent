@@ -38,8 +38,8 @@ CONTEXT_ORDER = ["Work-Automation", "Personal", "15%-Career", "(unset)"]
 # ---------- Module 1: task retrieval + grouping ----------
 
 def fetch_list_tasks(list_id: str, api_key: str) -> list[dict]:
-    """GET all tasks in a list, including closed ones (ClickUp's status
-    label is 'completed', not 'complete')."""
+    """GET all tasks in a list, including closed ones -- closed status
+    is needed to distinguish them, but callers must filter before use."""
     url = f"https://api.clickup.com/api/v2/list/{list_id}/task"
     headers = {"Authorization": api_key}
     params = {"include_closed": "true"}
@@ -47,6 +47,17 @@ def fetch_list_tasks(list_id: str, api_key: str) -> list[dict]:
     resp.raise_for_status()
     return resp.json().get("tasks", [])
 
+EXCLUDED_STATUSES = {"in review"}  # extend later if other statuses need excluding
+
+def is_open(task: dict) -> bool:
+    status = task.get("status", {})
+    status_type = status.get("type", "")
+    status_name = status.get("status", "").strip().lower()
+    if status_type in ("closed", "done"):
+        return False
+    if status_name in EXCLUDED_STATUSES:
+        return False
+    return True
 
 def get_context_field(task: dict) -> str:
     """Dropdown custom fields return 'value' as an index into
@@ -64,9 +75,10 @@ def get_context_field(task: dict) -> str:
 
 
 def build_task_section(tasks: list[dict]) -> str:
-    lines = ["## Open Tasks by Context", ""]
+    open_tasks = [t for t in tasks if is_open(t)]
+    lines = [f"## Open Tasks by Context ({len(open_tasks)} open, {len(tasks) - len(open_tasks)} closed hidden)", ""]
     by_context: dict[str, list[dict]] = {}
-    for t in tasks:
+    for t in open_tasks:
         by_context.setdefault(get_context_field(t), []).append(t)
 
     ordered_keys = [k for k in CONTEXT_ORDER if k in by_context] + \
@@ -89,7 +101,6 @@ def fetch_what_works(page_map: dict) -> str | None:
         return None
     return jss.fetch_page_content(jss.WORKSPACE_ID, entry["doc_id"], entry["page_id"], jss.API_KEY)
 
-
 def call_claude(task_summary: str, what_works_content: str) -> str:
     url = "https://api.anthropic.com/v1/messages"
     headers = {
@@ -97,17 +108,29 @@ def call_claude(task_summary: str, what_works_content: str) -> str:
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    prompt = f"""Here is my open task list (Build Log + Components):
+    prompt = f"""Here is my open task list (Build Log + Components), already
+filtered to exclude closed/completed items:
 
 {task_summary}
 
-Here is my "What Works / What Doesn't Work" reference sheet:
+Pick exactly 3 tasks to prioritize today, using these standards in order:
+1. Closest to shipping -- tasks already in progress, mid-validation, or one
+   small step from done beat fresh starts.
+2. Unblocks other work -- a task that other backlog items depend on beats
+   an isolated one.
+3. Closes an open loop -- fixes a flagged bug, resolves a known drift, or
+   finishes something explicitly left unconfirmed.
+
+Constraint: at least one of the three must be small enough to finish in a
+single sitting (a bounded win, not a multi-session build) -- use this
+reference sheet only to judge which candidate qualifies as that small win,
+not to justify the other two picks:
 
 {what_works_content}
 
-Pick exactly 3 tasks I should prioritize today. One-line rationale each,
-grounded in what's actually in the What Works/Doesn't content -- not
-generic advice. If the sheet doesn't clearly support a pick, say so.
+State each rationale plainly and specifically, tied to which standard above
+drove the pick. Do not hedge or note that a pick is "a stretch" -- if a
+task doesn't clearly satisfy one of the three standards, don't pick it.
 Output as:
 1. [task name] -- [rationale]
 2. [task name] -- [rationale]
@@ -124,8 +147,8 @@ Output as:
     data = resp.json()
     return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
 
-
 def build_priority_section(tasks: list[dict], page_map: dict) -> str:
+    open_tasks = [t for t in tasks if is_open(t)]
     lines = ["## Today's Top 3 (suggestion only -- nothing written to ClickUp)", ""]
 
     if not ANTHROPIC_API_KEY:
@@ -139,7 +162,7 @@ def build_priority_section(tasks: list[dict], page_map: dict) -> str:
         lines.append(f"_Skipped: no page_id.json entry for '{WHAT_WORKS_BUCKET}'._")
         return "\n".join(lines)
 
-    task_summary = "\n".join(f"- [{get_context_field(t)}] {t.get('name')}" for t in tasks)
+    task_summary = "\n".join(f"- [{get_context_field(t)}] {t.get('name')}" for t in open_tasks)
 
     try:
         result = call_claude(task_summary, what_works)

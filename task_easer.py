@@ -50,11 +50,13 @@ def post_comment(task_id, text):
     except requests.RequestException as e:
         logging.error(f"Failed to post comment on task {task_id}: {e}")
  
-def apply_ease(task):
+def apply_ease(task) -> str:
+    """Returns one of: 'eased' (priority + tag both succeeded),
+    'partial' (priority succeeded, tag failed), 'error' (priority update failed)."""
     task_id = task["id"]
     task_name = task["name"]
     new_priority = ease_priority(task["priority"]["id"] if task["priority"] else None)
- 
+
     try:
         r = requests.put(
             f"https://api.clickup.com/api/v2/task/{task_id}",
@@ -65,8 +67,8 @@ def apply_ease(task):
     except requests.RequestException as e:
         logging.error(f"Priority update failed for '{task_name}' ({task_id}): {e}")
         post_comment(task_id, f"⚠️ Auto-ease failed at priority update step: {e}")
-        return  # don't tag or log success if the actual ease didn't happen
- 
+        return "error"
+
     try:
         r = requests.post(
             f"https://api.clickup.com/api/v2/task/{task_id}/tag/{TAG_NAME}",
@@ -76,24 +78,33 @@ def apply_ease(task):
     except requests.RequestException as e:
         logging.error(f"Tagging failed for '{task_name}' ({task_id}): {e}")
         post_comment(task_id, f"⚠️ Priority was eased but tagging '{TAG_NAME}' failed: {e}")
-        # priority change already succeeded — continue to log it, but flag the partial state
         post_comment(task_id, f"Auto-eased after {days_stale(task)} days inactive. (tag failed, see above)")
-        return
- 
+        return "partial"
+
     post_comment(task_id, f"Auto-eased after {days_stale(task)} days inactive.")
     logging.info(f"Eased: {task_name} ({task_id})")
- 
+    return "eased"
+
 def run():
     try:
         tasks = get_tasks()
     except requests.RequestException as e:
         logging.error(f"Failed to fetch task list: {e}")
         return
- 
+
+    counts = {"eased": 0, "partial": 0, "error": 0}
     for task in tasks:
         if days_stale(task) >= 3 and not already_eased(task):
-            apply_ease(task)
-            print(f"Eased: {task['name']}")
- 
+            status = apply_ease(task)
+            counts[status] += 1
+            if status == "eased":
+                print(f"Eased: {task['name']}")
+            elif status == "partial":
+                print(f"PARTIAL (priority eased, tag failed): {task['name']} (see task_easer.log)")
+            else:
+                print(f"FAILED to ease: {task['name']} (see task_easer.log)")
+
+    print(f"\nDone. {counts['eased']} eased, {counts['partial']} partial, {counts['error']} failed.")
+
 if __name__ == "__main__":
     run()

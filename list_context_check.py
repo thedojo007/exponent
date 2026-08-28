@@ -5,28 +5,17 @@
 #
 # Session-start Next Steps rendering lives in jarvis_next_steps.py.
 # This script stays a probe.
-
-import os, sys
-import requests
+import sys, os
 from pathlib import Path
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from jarvis_next_steps import fetch_list_tasks
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 
 API_KEY = os.getenv("CLICKUP_API_KEY")
 BUILD_LOG_LIST_ID = "901715560513"  # from list URL: /v/li/901715560513
-
-
-def fetch_list_tasks(list_id: str, api_key: str) -> list[dict]:
-    """GET all tasks in a list. include_closed=true so completed items
-    aren't silently dropped (confirmed non-obvious ClickUp behavior:
-    status label is 'completed', not 'complete')."""
-    url = f"https://api.clickup.com/api/v2/list/{list_id}/task"
-    headers = {"Authorization": api_key}
-    params = {"include_closed": "true"}
-    resp = requests.get(url, headers=headers, params=params, timeout=15)
-    resp.raise_for_status()
-    return resp.json().get("tasks", [])
 
 
 def get_context_field(task: dict) -> str:
