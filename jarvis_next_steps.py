@@ -162,7 +162,17 @@ def build_priority_section(tasks: list[dict], page_map: dict) -> str:
         lines.append(f"_Skipped: no page_id.json entry for '{WHAT_WORKS_BUCKET}'._")
         return "\n".join(lines)
 
-    task_summary = "\n".join(f"- [{get_context_field(t)}] {t.get('name')}" for t in open_tasks)
+    def format_task(t):
+        name = t.get('name', '')
+        desc = t.get('description') or t.get('text_content') or ''
+        desc = desc.strip()
+        if desc:
+            return f"- {name}\n  Description: {desc[:300]}"
+        return f"- {name}"
+
+    task_summary = "\n".join([format_task(t) for t in open_tasks])
+
+    print(f"[DEBUG] sample formatted task: {format_task(open_tasks[0])!r}")
 
     try:
         result = call_claude(task_summary, what_works)

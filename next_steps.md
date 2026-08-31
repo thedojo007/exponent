@@ -3,17 +3,17 @@
 Fully rewritten from scratch every run, not appended to --
 nothing here is permanent, don't build on top of it by hand.
 
-_122 tasks scanned (Build Log + Components)._
+_125 tasks scanned (Build Log + Components)._
 
 ## Today's Top 3 (suggestion only -- nothing written to ClickUp)
 
-1. **jarvis_next_steps.py: In Review priority synthesis bug** -- Standard 1 and 3: this is explicitly flagged as "In Review," meaning it's already mid-validation and one step from done, and it's a bug fix, which is a textbook open loop that needs closing rather than a fresh start.
+1. **Threshold Theo: live test (3-meeting) pending before Build Log entry** — Closest to shipping. This is explicitly mid-validation: the work is done and only the live test stands between it and a closed Build Log entry. Nothing else on the list is this close to done.
 
-2. **Session-to-Task pipeline (upgrade jarvis_session_sync.py)** -- Standard 2: this is an upgrade to existing infrastructure that other Personal-track automations (Weekly completed tasks as Jarvis input, Daily reconciliation agent, Next Steps completion-tracking) depend on for getting session data into the task system, so fixing/upgrading it unblocks that whole cluster.
+2. **Automate z: syncs** — Closes an open loop. The root cause is already diagnosed (Z: is office-LAN-only, QuickConnect misconfiguration, not a code bug), and the fix is a known, bounded action: reconfigure the Synology Drive Client to point at the QuickConnect address. This is also the small, single-sitting win — it's a config change, not a build, so it satisfies the constraint without needing to stretch either of the other two picks to fit.
 
-3. **page_id.json entry for Jarvis: Next Steps** -- Standard 2 combined with the bounded-win constraint: this is a small, self-contained config/data entry task (a single sitting fix), and it directly supports the Jarvis Next Steps system that multiple other listed tasks (priority synthesis, completion-tracking) rely on to function correctly.
+3. **Session-to-Task pipeline (upgrade jarvis_session_sync.py)** — Unblocks other work. Several open items (Daily reconciliation agent, Next Steps completion-tracking, Weekly completed tasks as Jarvis input) all depend on session output being structured rather than raw text. Upgrading this script is the foundational piece those downstream tasks need before they're even well-specified, so fixing it first has the widest downstream effect on the rest of the backlog.
 
-## Open Tasks by Context (52 open, 70 closed hidden)
+## Open Tasks by Context (51 open, 74 closed hidden)
 
 ### Work-Automation
 - Bonding process automation
@@ -24,7 +24,6 @@ _122 tasks scanned (Build Log + Components)._
 - Explore Google Apps Script for the workflow
 - Draft PRD for skill receipt extractor
 - Extend project_lookup.py to company-wide registry
-- 15% bucket sync
 - ERP-Groupware evidence bridge
 - attempt to make a perplexity, that will use csv and turn it into a quickbook journal file
 - Have AI make a something something that turns 일반 카드 명세서 into a 지출결의서 form
@@ -33,9 +32,7 @@ _122 tasks scanned (Build Log + Components)._
 - 자금일보 학습 규칙 (Claude Desktop Skill)
 
 ### Personal
-- jarvis_next_steps.py: In Review priority synthesis bug
 - Next Steps completion-tracking
-- page_id.json entry for Jarvis: Next Steps
 - Claude API sessions (Stage 3+)
 - Weekly completed tasks as Jarvis input
 - Daily reconciliation agent
@@ -51,13 +48,13 @@ _122 tasks scanned (Build Log + Components)._
 - Phone notes capture improvements
 - Create calendar event for Jarvis runs
 - Ops Odin override gap
-- Synthetic test content cleanup
 - Notification reliability (Gmail SMTP digest)
 - Recon: multi-user invocation
 - Recon: internal-search-first
 - Notes Inbox: multi-batch validation
 - Jarvis self-directed stage
 - Auto task-release agent (read-only flagging)
+- Jarvis 4-stage architecture
 - automate all manually laborious yet automatable goals
 
 ### 15%-Career
@@ -65,6 +62,8 @@ _122 tasks scanned (Build Log + Components)._
 - Sign up for all Section: AI webinars
 
 ### (unset)
+- Standing end-session protocol for task closure signal — scripting deferred
+- Threshold Theo: live test (3-meeting) pending before Build Log entry
 - Design seamless LinkedIn-Claude-ClickUp integration
 - Build Claude/Perplexity engine to flag and update problematic QuickBooks entries
 - Add automatic three-task recommendations to Claude

@@ -1,7 +1,9 @@
 """
-Session-to-Task pipeline (v1, single-bucket)
+Session-to-Task pipeline (v2, single-bucket + dedup)
 Parses a session recap's "Open Loops" bucket into discrete task title strings,
-then writes them via a confirm-gated live write to a ClickUp list.
+then writes them via a confirm-gated live write to a ClickUp list. Before
+writing, checks candidate titles against existing tasks in the target list
+and skips exact duplicates.
 
 Scope (Principle 5 - module isolation): separate file from jarvis_session_sync.py
 on purpose -- that script's job is session.txt -> ClickUp Doc pages (append,
@@ -16,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from jarvis_session_sync import _request_with_retry, API_KEY, WORKSPACE_ID  # noqa: E402
+from jarvis_session_sync import _request_with_retry, _normalize, API_KEY, WORKSPACE_ID  # noqa: E402
 
 
 def parse_open_loops(text: str) -> list[str]:
@@ -50,6 +52,53 @@ def _create_clickup_task(task_name: str, list_id: str, status: str, api_key: str
     return resp.json()
 
 
+def _fetch_existing_task_titles(list_id: str, api_key: str) -> set[str]:
+    """GET all tasks (open + closed) in list_id, return normalized titles.
+    Read-only -- no confirmation gate needed (Principle 8 only guards writes)."""
+    headers = {"Authorization": api_key, "Content-Type": "application/json"}
+    titles: set[str] = set()
+    page = 0
+    while True:
+        resp = _request_with_retry(
+            "GET",
+            f"https://api.clickup.com/api/v2/list/{list_id}/task",
+            headers,
+            params={"include_closed": "true", "page": page},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        tasks = data.get("tasks", [])
+        if not tasks:
+            break
+        titles.update(_normalize(t["name"]) for t in tasks)
+        if data.get("last_page", True):
+            break
+        page += 1
+    return titles
+
+
+def dedup_task_titles(task_titles: list[str], list_id: str, api_key: str) -> tuple[list[str], list[str]]:
+    """Split candidate titles into (new, skipped_as_duplicate) via exact
+    normalized-title match against existing tasks in list_id.
+
+    Deliberately exact-match only, not fuzzy/substring -- a false-positive
+    skip silently drops a real task with no record it was ever considered,
+    which is worse than a false-negative duplicate (which just shows up
+    for human review in the normal confirm_and_write dry run). Anything
+    short of an exact match falls through to the human via the existing
+    confirm gate rather than getting an automatic decision (Principle 8).
+
+    Known gap: _normalize does not lowercase, so a title differing only
+    by case will NOT be caught as a duplicate. Left as-is deliberately --
+    fixing it is a separate, small follow-up, not bundled in here.
+    """
+    existing = _fetch_existing_task_titles(list_id, api_key)
+    new, skipped = [], []
+    for title in task_titles:
+        (skipped if _normalize(title) in existing else new).append(title)
+    return new, skipped
+
+
 def confirm_and_write(
     task_titles: list[str],
     list_id: str,
@@ -60,6 +109,17 @@ def confirm_and_write(
     Principle 8 gate: shows the dry run, requires explicit 'y' before any write.
     Returns list of created task IDs (empty if declined or on failure).
     """
+    key = api_key or API_KEY
+    if key:
+        task_titles, skipped = dedup_task_titles(task_titles, list_id, key)
+        if skipped:
+            print(f"[DEDUP] Skipping {len(skipped)} title(s) already in list {list_id}:")
+            for t in skipped:
+                print(f"  - {t}")
+        if not task_titles:
+            print("[DONE] Nothing new to write -- all candidates were duplicates.")
+            return []
+
     dry_run_task_creation(task_titles, list_name=f"list {list_id}")
 
     confirm = input(f"\nCreate these {len(task_titles)} task(s) in ClickUp status='{status}'? [y/N]: ").strip().lower()
